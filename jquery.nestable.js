@@ -270,6 +270,9 @@
             dragItem[0].parentNode.removeChild(dragItem[0]);
             dragItem.appendTo(this.dragEl);
 
+            this.dragEl.data('nestable-type', dragItem.data('nestable-type'));
+
+            $(document.body).append(this.dragEl);
             this.dragEl.css({
                 'left' : e.pageX - mouse.offsetX,
                 'top'  : e.pageY - mouse.offsetY
@@ -354,46 +357,48 @@
             /**
              * move horizontal
              */
-            if (mouse.dirAx && mouse.distAxX >= opt.threshold) {
-                // reset move distance on x-axis for new phase
-                // mouse.distAxX = 0;
-                prev = this.placeEl.prev(opt.itemNodeName);
-                // increase horizontal level if previous sibling exists and is not collapsed
-                if (mouse.distX > 0 && prev.length && !prev.hasClass(opt.collapsedClass)) {
-                    // cannot increase level when item above is collapsed
-                    list = prev.find(opt.listNodeName).last();
-                    // check if depth limit has reached
-                    depth = this.placeEl.parents(opt.listNodeName).length;
-                    if (depth + this.dragDepth <= opt.maxDepth) {
-                        // create new sub-level if one doesn't exist
-                        if (!list.length) {
-                            list = $('<' + opt.listNodeName + '/>').addClass(opt.listClass);
-                            list.append(this.placeEl);
-                            prev.find('.content').append(list);
-                            this.setParent(prev.find('.content'));
-                        } else {
-                            // else append to next level up
-                            list = prev.children(opt.listNodeName).last();
-                            // list.append(this.placeEl);
-                            list.find('.content').append(this.placeEl);
-                        }
-                    }
-                }
-                // decrease horizontal level
-                if (mouse.distX < 0) {
-                    // we can't decrease a level if an item preceeds the current one
-                    next = this.placeEl.next(opt.itemNodeName);
-                    if (!next.length) {
-                        parent = this.placeEl.parent();
-                        var closest = this.placeEl.closest(opt.itemNodeName);
-                        if (!closest.hasClass('project')) {
-                          closest.after(this.placeEl)
-                          if (!parent.children().length) {
-                              this.unsetParent(parent.parent());
+            if (this.dragEl.data('nestable-type') !== 'Project') {
+              if (mouse.dirAx && mouse.distAxX >= opt.threshold) {
+                  // reset move distance on x-axis for new phase
+                  // mouse.distAxX = 0;
+                  prev = this.placeEl.prev(opt.itemNodeName);
+                  // increase horizontal level if previous sibling exists and is not collapsed
+                  if (mouse.distX > 0 && prev.length && !prev.hasClass(opt.collapsedClass)) {
+                      // cannot increase level when item above is collapsed
+                      list = prev.find(opt.listNodeName).last();
+                      // check if depth limit has reached
+                      depth = this.placeEl.parents(opt.listNodeName).length;
+                      if (depth + this.dragDepth <= opt.maxDepth) {
+                          // create new sub-level if one doesn't exist
+                          if (!list.length) {
+                              list = $('<' + opt.listNodeName + '/>').addClass(opt.listClass);
+                              list.append(this.placeEl);
+                              prev.find('.content').append(list);
+                              this.setParent(prev.find('.content'));
+                          } else {
+                              // else append to next level up
+                              list = prev.children(opt.listNodeName).last();
+                              // list.append(this.placeEl);
+                              list.find('.content').append(this.placeEl);
                           }
-                        }
-                    }
-                }
+                      }
+                  }
+                  // decrease horizontal level
+                  if (mouse.distX < 0) {
+                      // we can't decrease a level if an item preceeds the current one
+                      next = this.placeEl.next(opt.itemNodeName);
+                      if (!next.length) {
+                          parent = this.placeEl.parent();
+                          var closest = this.placeEl.closest(opt.itemNodeName);
+                          if (!closest.hasClass('project')) {
+                            closest.after(this.placeEl)
+                            if (!parent.children().length) {
+                                this.unsetParent(parent.parent());
+                            }
+                          }
+                      }
+                  }
+              }
             }
 
             var isEmpty = false;
@@ -406,20 +411,19 @@
             if (!hasPointerEvents) {
                 this.dragEl[0].style.visibility = 'visible';
             }
-            if (this.pointEl.hasClass(opt.handleClass)) {
+            if (this.pointEl.hasClass(opt.handleClass) || (this.pointEl.hasClass('angle') && this.pointEl.hasClass('icon'))) {
                 this.pointEl = this.pointEl.parent(opt.itemNodeName);
             }
             if (this.pointEl.hasClass(opt.emptyClass)) {
                 isEmpty = true;
             }
-            else if (!this.pointEl.length || !this.pointEl.hasClass(opt.itemClass) || (this.pointEl.hasClass('project') && !this.dragEl.hasClass('project'))) {
+            else if (!this.pointEl.length || !this.pointEl.hasClass(opt.itemClass) || (this.pointEl.hasClass('project') && this.dragEl.data('nestable-type') !== 'Project')) {
                 return;
             }
 
             // find parent list of item under cursor
             var pointElRoot = this.pointEl.closest('.' + opt.rootClass),
-                isNewRoot   = this.dragRootEl.data('nestable-id') !== pointElRoot.data('nestable-id') && pointElRoot.data('nestable-type') === 'Project';
-
+                isNewRoot   = this.dragRootEl.data('nestable-id') !== pointElRoot.data('nestable-id') && pointElRoot.data('nestable-type') === 'Project' && this.dragEl.data('nestable-type') !== 'Project';
             /**
              * move vertical
              */
@@ -434,6 +438,11 @@
                 if (depth > opt.maxDepth) {
                     return;
                 }
+
+                if (this.dragEl.data('nestable-type') === 'Project' && this.pointEl.parents(opt.listNodeName).length > 1) {
+                  return;
+                }
+
                 var before = e.pageY < (this.pointEl.offset().top + this.pointEl.height() / 2);
                     parent = this.placeEl.parent();
                 // if empty create new list to replace empty placeholder
