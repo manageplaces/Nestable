@@ -233,11 +233,11 @@
 
         setParent: function(li)
         {
-            if (li.children(this.options.listNodeName).length) {
-                li.prepend($(this.options.expandBtnHTML));
-                li.prepend($(this.options.collapseBtnHTML));
-            }
-            li.children('[data-action="expand"]').hide();
+            // if (li.children(this.options.listNodeName).length) {
+            //     li.prepend($(this.options.expandBtnHTML));
+            //     li.prepend($(this.options.collapseBtnHTML));
+            // }
+            // li.children('[data-action="expand"]').hide();
         },
 
         unsetParent: function(li)
@@ -260,7 +260,8 @@
             mouse.startX = mouse.lastX = e.pageX;
             mouse.startY = mouse.lastY = e.pageY;
 
-            this.dragRootEl = this.el;
+            // this.dragRootEl = this.el;
+            this.dragRootEl = target.closest(this.options.itemNodeName + '.project.item');
 
             this.dragEl = $(document.createElement(this.options.listNodeName)).addClass(this.options.listClass + ' ' + this.options.dragClass);
             this.dragEl.css('width', dragItem.width());
@@ -269,7 +270,6 @@
             dragItem[0].parentNode.removeChild(dragItem[0]);
             dragItem.appendTo(this.dragEl);
 
-            $(document.body).append(this.dragEl);
             this.dragEl.css({
                 'left' : e.pageX - mouse.offsetX,
                 'top'  : e.pageY - mouse.offsetY
@@ -356,7 +356,7 @@
              */
             if (mouse.dirAx && mouse.distAxX >= opt.threshold) {
                 // reset move distance on x-axis for new phase
-                mouse.distAxX = 0;
+                // mouse.distAxX = 0;
                 prev = this.placeEl.prev(opt.itemNodeName);
                 // increase horizontal level if previous sibling exists and is not collapsed
                 if (mouse.distX > 0 && prev.length && !prev.hasClass(opt.collapsedClass)) {
@@ -369,12 +369,13 @@
                         if (!list.length) {
                             list = $('<' + opt.listNodeName + '/>').addClass(opt.listClass);
                             list.append(this.placeEl);
-                            prev.append(list);
-                            this.setParent(prev);
+                            prev.find('.content').append(list);
+                            this.setParent(prev.find('.content'));
                         } else {
                             // else append to next level up
                             list = prev.children(opt.listNodeName).last();
-                            list.append(this.placeEl);
+                            // list.append(this.placeEl);
+                            list.find('.content').append(this.placeEl);
                         }
                     }
                 }
@@ -384,9 +385,12 @@
                     next = this.placeEl.next(opt.itemNodeName);
                     if (!next.length) {
                         parent = this.placeEl.parent();
-                        this.placeEl.closest(opt.itemNodeName).after(this.placeEl);
-                        if (!parent.children().length) {
-                            this.unsetParent(parent.parent());
+                        var closest = this.placeEl.closest(opt.itemNodeName);
+                        if (!closest.hasClass('project')) {
+                          closest.after(this.placeEl)
+                          if (!parent.children().length) {
+                              this.unsetParent(parent.parent());
+                          }
                         }
                     }
                 }
@@ -408,18 +412,19 @@
             if (this.pointEl.hasClass(opt.emptyClass)) {
                 isEmpty = true;
             }
-            else if (!this.pointEl.length || !this.pointEl.hasClass(opt.itemClass)) {
+            else if (!this.pointEl.length || !this.pointEl.hasClass(opt.itemClass) || (this.pointEl.hasClass('project') && !this.dragEl.hasClass('project'))) {
                 return;
             }
 
             // find parent list of item under cursor
             var pointElRoot = this.pointEl.closest('.' + opt.rootClass),
-                isNewRoot   = this.dragRootEl.data('nestable-id') !== pointElRoot.data('nestable-id');
+                isNewRoot   = this.dragRootEl.data('nestable-id') !== pointElRoot.data('nestable-id') && pointElRoot.data('nestable-type') === 'Project';
 
             /**
              * move vertical
              */
-            if (!mouse.dirAx || isNewRoot || isEmpty) {
+            // if (!mouse.dirAx || isNewRoot || isEmpty) {
+            if ((!mouse.dirAx || isEmpty) && !isNewRoot) {
                 // check if groups match if dragging over new root
                 if (isNewRoot && opt.group !== pointElRoot.data('nestable-group')) {
                     return;
@@ -446,9 +451,9 @@
                 if (!parent.children().length) {
                     this.unsetParent(parent.parent());
                 }
-                if (!this.dragRootEl.find(opt.itemNodeName).length) {
-                    this.dragRootEl.append('<div class="' + opt.emptyClass + '"/>');
-                }
+                // if (!this.dragRootEl.find(opt.itemNodeName).length) {
+                //     this.dragRootEl.append('<div class="' + opt.emptyClass + '"/>');
+                // }
                 // parent root list has changed
                 if (isNewRoot) {
                     this.dragRootEl = pointElRoot;
